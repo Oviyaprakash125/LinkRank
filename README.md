@@ -10,7 +10,7 @@ LinkRank enriches LinkedIn profiles via the [Crustdata API](https://crustdata.co
 
 ```
 linkrank/
-  frontend/   React + Vite
+  src/        React + Vite Frontend
   supabase/   Postgres + Supabase Edge Functions
 ```
 
@@ -20,14 +20,13 @@ linkrank/
 
 ```bash
 # Requires Docker running
-supabase start
+npx supabase start
 # Note the Studio URL provided in the output
 ```
 
 ### 2. Frontend
 
 ```bash
-cd frontend
 cp .env.example .env
 # Edit .env — fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from Supabase Studio settings
 npm install
@@ -39,13 +38,13 @@ npm run dev       # starts on http://localhost:5173
 ## Environment Variables
 
 ### Supabase Edge Functions (Secrets)
-Set via `supabase secrets set <NAME>=<VALUE>`
+Set via `npx supabase secrets set <NAME>=<VALUE>`
 
 | Variable            | Description                             |
 |---------------------|-----------------------------------------|
 | `CRUSTDATA_API_KEY` | Crustdata API key (from crustdata.com)  |
 
-### Frontend (frontend/.env)
+### Frontend (.env)
 
 | Variable                  | Description                             |
 |---------------------------|-----------------------------------------|

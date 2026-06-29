@@ -8,7 +8,7 @@ Work through each step in order. Expected output is noted after each command.
 
 ```bash
 # Ensure Docker is running first!
-supabase start
+npx supabase start
 ```
 
 **Expected:** Supabase services start up, migrations are automatically applied. A Studio URL (usually http://127.0.0.1:54323) is printed in the terminal.
@@ -26,7 +26,7 @@ supabase start
 Get your Crustdata API key from https://crustdata.com.
 
 ```bash
-supabase secrets set CRUSTDATA_API_KEY=your_crustdata_key
+npx supabase secrets set CRUSTDATA_API_KEY=your_crustdata_key
 ```
 
 ---
@@ -34,18 +34,16 @@ supabase secrets set CRUSTDATA_API_KEY=your_crustdata_key
 ## Step 3 — Configure Frontend Environment
 
 ```bash
-cd frontend
 cp .env.example .env
 ```
 
-Open `frontend/.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. You can find these in the terminal output from `supabase start` (API URL and anon key), or in Supabase Studio -> Settings -> API.
+Open `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. You can find these in the terminal output from `supabase start` (API URL and anon key), or in Supabase Studio -> Settings -> API.
 
 ---
 
 ## Step 4 — Start Frontend
 
 ```bash
-# Still in the frontend directory
 npm install
 npm run dev
 ```

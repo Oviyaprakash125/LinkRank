@@ -14,14 +14,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error(
-    'Missing Supabase env vars. Copy frontend/.env.example to frontend/.env and fill in the values.'
-  );
-}
+const supabaseUrl  = 'https://illkrehfqrcrdysnisme.supabase.co';
+const supabaseKey  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsbGtyZWhmcXJjcmR5c25pc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NTAyNTUsImV4cCI6MjA5ODMyNjI1NX0.ammh4kNESe7GDvGYfvCsq4DiXY-pXSkr-TEv1rI37iY';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 

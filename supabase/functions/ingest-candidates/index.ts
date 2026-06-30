@@ -10,35 +10,9 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const { data: recruiter, error: recruiterError } = await supabase
-      .from('recruiters')
-      .select('tier')
-      .eq('id', user.id)
-      .single();
-
-    if (recruiterError || !recruiter) {
-        return new Response(JSON.stringify({ error: 'Recruiter not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    if (recruiter.tier !== 'tier_2' && recruiter.tier !== 'tier_3') {
-      return new Response(JSON.stringify({ error: `Access denied — tier_2 or above required. Your tier: ${recruiter.tier}` }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
 
     const { linkedin_urls, target_role } = await req.json();
     if (!linkedin_urls || !Array.isArray(linkedin_urls)) {

@@ -17,11 +17,6 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
     const url = new URL(req.url);
     const shortlist_id = url.searchParams.get('shortlist_id');
     const format = url.searchParams.get('format') || 'csv';
@@ -33,37 +28,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const { data: recruiter, error: recruiterError } = await supabase
-      .from('recruiters')
-      .select('tier')
-      .eq('id', user.id)
-      .single();
-
-    if (recruiterError || !recruiter) {
-        return new Response(JSON.stringify({ error: 'Recruiter not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const { data: shortlist, error: shortlistError } = await supabase
-        .from('shortlists')
-        .select('*')
-        .eq('id', shortlist_id)
-        .single();
-
-    if (shortlistError || !shortlist) {
-         return new Response(JSON.stringify({ error: 'Shortlist not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    if (recruiter.tier !== 'tier_3' && shortlist.recruiter_id !== user.id) {
-      return new Response(JSON.stringify({ error: 'You can only export your own shortlists' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
 
     const { data: rows, error: rowsError } = await supabase
       .rpc('get_shortlist_export', { p_shortlist_id: parseInt(shortlist_id) });

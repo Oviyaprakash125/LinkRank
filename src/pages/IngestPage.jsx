@@ -1,17 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ingestCandidates } from '../api/client';
+import { ingestCandidates, discoverCandidates } from '../api/client';
 import { Alert, Spinner } from '../components/ui';
 
 export default function IngestPage() {
   const { tier } = useAuth();
   const navigate  = useNavigate();
 
+  const [activeTab, setActiveTab]         = useState('discover'); // 'discover' or 'manual'
+
+  // Discover state
+  const [targetJobTitle, setTargetJobTitle] = useState('');
+  const [discoverCount, setDiscoverCount]   = useState(20);
+
+  // Manual state
   const [urlsText, setUrlsText]           = useState('');
+
+  // Shared target role state
   const [titleKeywords, setTitleKeywords] = useState('');
   const [skillKeywords, setSkillKeywords] = useState('');
   const [minYears, setMinYears]           = useState('');
+
   const [loading, setLoading]             = useState(false);
   const [error, setError]                 = useState('');
   const [pending, setPending]             = useState([]);
@@ -25,21 +35,11 @@ export default function IngestPage() {
     setPending([]);
     setResult(null);
 
-    const urls = urlsText
-      .split('\n')
-      .map(u => u.trim())
-      .filter(Boolean);
-
-    if (urls.length === 0) {
-      setError('Please enter at least one LinkedIn URL.');
-      return;
-    }
-
     const tkArr = titleKeywords.split(',').map(t => t.trim()).filter(Boolean);
     const skArr = skillKeywords.split(',').map(s => s.trim()).filter(Boolean);
 
     if (tkArr.length === 0) {
-      setError('Please enter at least one title keyword.');
+      setError('Please enter at least one title keyword for scoring.');
       return;
     }
 
@@ -51,17 +51,41 @@ export default function IngestPage() {
 
     setLoading(true);
     try {
-      const data = await ingestCandidates({ linkedin_urls: urls, target_role: targetRole });
+      let data;
+      if (activeTab === 'discover') {
+        if (!targetJobTitle.trim()) {
+           setError('Please enter a target job title to search for.');
+           setLoading(false);
+           return;
+        }
+        data = await discoverCandidates({
+          target_job_title: targetJobTitle,
+          count: discoverCount,
+          target_role: targetRole
+        });
+      } else {
+        const urls = urlsText
+          .split('\n')
+          .map(u => u.trim())
+          .filter(Boolean);
+
+        if (urls.length === 0) {
+          setError('Please enter at least one LinkedIn URL.');
+          setLoading(false);
+          return;
+        }
+        data = await ingestCandidates({ linkedin_urls: urls, target_role: targetRole });
+      }
+
       setResult(data);
       if (data.pending_enrichment?.length) setPending(data.pending_enrichment);
       if (data.succeeded?.length > 0) {
-        // Navigate to leaderboard with the target role
         setTimeout(() => {
           navigate(`/leaderboard?target_role=${encodeURIComponent(tkArr.join(', '))}`);
         }, 1500);
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Ingest failed');
+      setError(err.response?.data?.error || err.message || 'Action failed');
     } finally {
       setLoading(false);
     }
@@ -71,12 +95,12 @@ export default function IngestPage() {
     <div className="main-content">
       <div className="page-header">
         <h1 className="page-title">Source Candidates</h1>
-        <p className="page-subtitle">Paste LinkedIn URLs and define your target role to score candidates automatically.</p>
+        <p className="page-subtitle">Auto-discover top profiles or manually paste LinkedIn URLs to score candidates.</p>
       </div>
 
       {!canIngest && (
         <Alert type="warning">
-          ⚠️ Sourcing new candidates requires <strong>Tier 2 (Recruiter)</strong> or above. Your current tier is <strong>{tier}</strong>. Contact your admin for access.
+          ⚠️ Sourcing new candidates requires <strong>Tier 2 (Recruiter)</strong> or above. Your current tier is <strong>{tier}</strong>.
         </Alert>
       )}
 
@@ -87,28 +111,81 @@ export default function IngestPage() {
         </Alert>
       )}
 
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+         <button 
+            style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'discover' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'discover' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'discover' ? 700 : 400, cursor: 'pointer' }}
+            onClick={() => setActiveTab('discover')}
+         >
+            ✨ Auto-Discover (Crustdata)
+         </button>
+         <button 
+            style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: activeTab === 'manual' ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === 'manual' ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: activeTab === 'manual' ? 700 : 400, cursor: 'pointer' }}
+            onClick={() => setActiveTab('manual')}
+         >
+            🔗 Manual URL Import
+         </button>
+      </div>
+
       <form onSubmit={handleSubmit} id="ingest-form">
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-            LinkedIn URLs
-          </h2>
-          <div className="form-group">
-            <label className="form-label" htmlFor="urls-input">One URL per line</label>
-            <textarea
-              id="urls-input"
-              className="form-textarea"
-              value={urlsText}
-              onChange={e => setUrlsText(e.target.value)}
-              placeholder={'https://linkedin.com/in/johndoe\nhttps://linkedin.com/in/janedoe'}
-              rows={6}
-              disabled={!canIngest}
-            />
-          </div>
-        </div>
+        
+        {activeTab === 'discover' ? (
+           <div className="card" style={{ marginBottom: '1.5rem' }}>
+             <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+               Auto-Discover Candidates
+             </h2>
+             <div className="ingest-grid">
+               <div className="form-group">
+                 <label className="form-label" htmlFor="job-title-input">Target Job Title to Search</label>
+                 <input
+                   id="job-title-input"
+                   type="text"
+                   className="form-input"
+                   value={targetJobTitle}
+                   onChange={e => setTargetJobTitle(e.target.value)}
+                   placeholder="e.g. Machine Learning Engineer"
+                   disabled={!canIngest}
+                 />
+               </div>
+               <div className="form-group" style={{ maxWidth: '150px' }}>
+                 <label className="form-label" htmlFor="count-input">Number of Profiles</label>
+                 <select
+                   id="count-input"
+                   className="form-input"
+                   value={discoverCount}
+                   onChange={e => setDiscoverCount(Number(e.target.value))}
+                   disabled={!canIngest}
+                 >
+                    <option value={10}>Top 10</option>
+                    <option value={20}>Top 20</option>
+                    <option value={30}>Top 30</option>
+                    <option value={50}>Top 50</option>
+                 </select>
+               </div>
+             </div>
+           </div>
+        ) : (
+           <div className="card" style={{ marginBottom: '1.5rem' }}>
+             <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+               LinkedIn URLs
+             </h2>
+             <div className="form-group">
+               <label className="form-label" htmlFor="urls-input">One URL per line</label>
+               <textarea
+                 id="urls-input"
+                 className="form-textarea"
+                 value={urlsText}
+                 onChange={e => setUrlsText(e.target.value)}
+                 placeholder={'https://linkedin.com/in/johndoe\nhttps://linkedin.com/in/janedoe'}
+                 rows={6}
+                 disabled={!canIngest}
+               />
+             </div>
+           </div>
+        )}
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-            Target Role Definition
+            Scoring Criteria
           </h2>
           <div className="ingest-grid">
             <div className="form-group">
@@ -160,7 +237,7 @@ export default function IngestPage() {
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? <><Spinner /> Sourcing…</> : '🚀 Run Sourcing'}
+              {loading ? <><Spinner /> Processing…</> : '🚀 Run Sourcing'}
             </button>
           ) : (
             <div className="tooltip-wrapper">

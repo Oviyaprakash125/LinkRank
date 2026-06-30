@@ -35,16 +35,17 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   throw lastErr;
 }
 
-// ── Helper for fetch with timeout and throwing on error ────────────────────────
-async function fetchWithAuth(path: string, searchParams: Record<string, string>): Promise<any> {
+async function fetchWithAuth(path: string, searchParams?: Record<string, string>, options?: RequestInit): Promise<any> {
   const apiKey = Deno.env.get("CRUSTDATA_API_KEY");
   if (!apiKey) {
      throw new Error("Missing CRUSTDATA_API_KEY secret");
   }
   
   const url = new URL(`https://api.crustdata.com${path}`);
-  for (const [key, value] of Object.entries(searchParams)) {
-    url.searchParams.append(key, value);
+  if (searchParams) {
+    for (const [key, value] of Object.entries(searchParams)) {
+      url.searchParams.append(key, value);
+    }
   }
 
   const controller = new AbortController();
@@ -52,9 +53,11 @@ async function fetchWithAuth(path: string, searchParams: Record<string, string>)
 
   try {
     const response = await fetch(url.toString(), {
+      ...options,
       headers: {
         'Authorization': `Token ${apiKey}`,
         'Content-Type': 'application/json',
+        ...(options?.headers || {})
       },
       signal: controller.signal
     });
@@ -107,6 +110,40 @@ export async function enrichProfiles(linkedinUrls: string[]) {
   }
 
   return { profiles, pending };
+}
+
+// ── discoverProfiles ──────────────────────────────────────────────────────────
+export async function discoverProfiles(jobTitle: string, limit: number = 20) {
+  if (!jobTitle) {
+    throw new Error('discoverProfiles: jobTitle is required');
+  }
+
+  // Uses Crustdata's person search endpoint
+  const responseData = await withRetry(() =>
+    fetchWithAuth('/screener/person/search', undefined, {
+      method: 'POST',
+      body: JSON.stringify({
+        filters: [
+          {
+            filter_type: 'CURRENT_TITLE',
+            type: 'in',
+            value: [jobTitle]
+          }
+        ],
+        page: 1,
+        limit: limit
+      })
+    })
+  );
+
+  const profileArray = Array.isArray(responseData)
+    ? responseData
+    : (responseData?.profiles || responseData?.data || responseData?.results || responseData?.persons || [responseData]);
+
+  // Profiles from search often don't need 'enrichment' if they contain full data, 
+  // but if they just return URLs, we might need to enrich them. 
+  // We assume the search API returns enough basic profile data to parse.
+  return profileArray.slice(0, limit);
 }
 
 // ── fetchSocialPosts ──────────────────────────────────────────────────────────

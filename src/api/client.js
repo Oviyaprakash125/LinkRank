@@ -34,6 +34,14 @@ export async function ingestCandidates(payload) {
   return data;
 }
 
+export async function discoverCandidates(payload) {
+  const { data, error } = await supabase.functions.invoke('discover-candidates', {
+    body: payload
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function getCandidate(id) {
   const { data: candidate, error } = await supabase
     .from('candidates')

@@ -42,12 +42,11 @@ export default function LeaderboardPage() {
   }
 
   const fetchLeaderboard = useCallback(async () => {
-    if (!targetRole) return;
     setLoading(true);
     setError('');
     try {
       const data = await getLeaderboard({
-        target_role:   targetRole,
+        target_role:   targetRole || undefined,
         seniority_tier: filters.seniority_tier || undefined,
         company:        filters.company || undefined,
         min_score:      filters.min_score || undefined,
@@ -104,40 +103,8 @@ export default function LeaderboardPage() {
     }
   }
 
-  // If no target_role, show input form
-  if (!targetRole) {
-    return (
-      <div className="main-content">
-        <div className="page-header">
-          <h1 className="page-title">Leaderboard</h1>
-          <p className="page-subtitle">Enter a target role to see ranked candidates.</p>
-        </div>
-        <div className="card" style={{ maxWidth: '480px' }}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="role-input">Target Role</label>
-            <input
-              id="role-input"
-              type="text"
-              className="form-input"
-              value={roleInput}
-              onChange={e => setRoleInput(e.target.value)}
-              placeholder="e.g. senior backend engineer"
-              onKeyDown={e => e.key === 'Enter' && setTargetRole(roleInput)}
-            />
-          </div>
-          <button
-            id="btn-load-leaderboard"
-            className="btn btn-primary"
-            onClick={() => { setTargetRole(roleInput); setSearchParams({ target_role: roleInput }); }}
-            disabled={!roleInput.trim()}
-          >
-            Load Leaderboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // We don't block the UI anymore if targetRole is missing. 
+  // It will just fetch all candidates across all roles.
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
@@ -147,12 +114,12 @@ export default function LeaderboardPage() {
         <div>
           <h1 className="page-title">Leaderboard</h1>
           <p className="page-subtitle">
-            Target role: <strong style={{ color: 'var(--accent-light)' }}>{targetRole}</strong>
+            Target role: <strong style={{ color: 'var(--accent-light)' }}>{targetRole || 'All Roles'}</strong>
             {' '}·{' '}{total} candidate{total !== 1 ? 's' : ''}
           </p>
         </div>
         <button className="btn btn-ghost" onClick={() => { setTargetRole(''); setSearchParams({}); }}>
-          Change role
+          Show All
         </button>
       </div>
 

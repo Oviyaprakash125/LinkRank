@@ -2,6 +2,7 @@ const url = 'https://illkrehfqrcrdysnisme.supabase.co/functions/v1/discover-cand
 const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsbGtyZWhmcXJjcmR5c25pc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NTAyNTUsImV4cCI6MjA5ODMyNjI1NX0.ammh4kNESe7GDvGYfvCsq4DiXY-pXSkr-TEv1rI37iY';
 
 async function testDiscover() {
+  console.log('Fetching front end candidates...');
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -9,9 +10,9 @@ async function testDiscover() {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      target_job_title: 'Engineer',
-      count: 2,
-      target_role: { title_keywords: ['Engineer'] }
+      target_job_title: 'front end',
+      count: 20,
+      target_role: { title_keywords: ['front end'] }
     })
   });
   const text = await res.text();

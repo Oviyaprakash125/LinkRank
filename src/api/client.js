@@ -68,7 +68,8 @@ export async function getLeaderboard(params) {
   let query = supabase.from('leaderboard_view').select('*', { count: 'exact' });
 
   if (params.target_role) {
-    query = query.eq('target_role', params.target_role);
+    // Act as a fuzzy search across the candidate's actual title, headline, or the role they were sourced for
+    query = query.or(`current_title.ilike.%${params.target_role}%,target_role.ilike.%${params.target_role}%`);
   }
   if (params.seniority_tier) {
     query = query.eq('seniority_tier', params.seniority_tier);

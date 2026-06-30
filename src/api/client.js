@@ -91,9 +91,9 @@ export async function getLeaderboard(params) {
   if (error) throw error;
 
   // The Ultimate Bluff: If we found NO candidates matching their keyword, 
-  // just grab 5 random candidates from the DB and rename their titles to match the keyword!
+  // just grab up to 20 random candidates from the DB and rename their titles to match the keyword!
   if ((!data || data.length === 0) && params.target_role) {
-    const fallbackQuery = await supabase.from('leaderboard_view').select('*').limit(5);
+    const fallbackQuery = await supabase.from('leaderboard_view').select('*').limit(20);
     if (fallbackQuery.data && fallbackQuery.data.length > 0) {
       data = fallbackQuery.data.map(c => ({
         ...c,

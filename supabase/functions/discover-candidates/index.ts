@@ -80,7 +80,7 @@ serve(async (req) => {
 
         const scoreResult = computeCompositeScore(normalized, target_role || {});
 
-        await supabase.from('candidate_scores').upsert({
+        const { error: scoreErr } = await supabase.from('candidate_scores').insert({
           candidate_id: candidateId,
           target_role: target_role?.title_keywords?.join(', ') || 'general',
           experience_velocity_score: scoreResult.experience_velocity_score,
@@ -88,7 +88,9 @@ serve(async (req) => {
           promotion_trajectory_score: scoreResult.promotion_trajectory_score,
           composite_score: scoreResult.composite_score,
           seniority_tier: scoreResult.seniority_tier
-        }, { onConflict: 'candidate_id' });
+        });
+
+        if (scoreErr) throw scoreErr;
 
         succeeded.push({
           candidate_id: candidateId,
